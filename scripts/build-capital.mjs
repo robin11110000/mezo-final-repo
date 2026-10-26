@@ -20,4 +20,5 @@ await mkdir(resolve(root,'exports'),{recursive:true});
 await writeFile(resolve(root,'exports/WorkingCapitalVault.json'),JSON.stringify(artifact,null,2)+'\n');
 await mkdir(resolve(root,'ui/src/lib/abis'),{recursive:true});
 await writeFile(resolve(root,'ui/src/lib/abis/WorkingCapitalVault.json'),JSON.stringify(artifact,null,2)+'\n');
+await writeFile(resolve(root,'ui/src/lib/runtime-compatibility.json'),await readFile(resolve(root,'exports/runtime-compatibility.json'),'utf8'));
 console.log('Exported exact ABI and deployment bytecode to exports/WorkingCapitalVault.json (no deployed address).');

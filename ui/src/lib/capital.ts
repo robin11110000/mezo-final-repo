@@ -1,5 +1,6 @@
 import {BrowserProvider,Contract,JsonRpcProvider,getAddress,parseUnits} from 'ethers';
 import artifact from './abis/WorkingCapitalVault.json';
+import compatibility from './runtime-compatibility.json';
 
 export const CAPITAL={chainId:31611,chainHex:'0x7b7b',rpc:'https://rpc.test.mezo.org',explorer:'https://explorer.test.mezo.org',musd:'0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503',savings:'0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16',implementation:'0x92D12f0a60906b39d81acD9bf8977b6c824cD98C',strategy:'0x6abE6853f3006f304709084AC37f826Be50847E0'} as const;
 export {artifact};
@@ -27,7 +28,8 @@ export async function readCapital(address:string){
   const start=reference.start*2,end=start+reference.length*2;
   masked=masked.slice(0,start)+'0'.repeat(reference.length*2)+masked.slice(end);
  }
- if(masked!==artifact.runtimeTemplate.slice(2).toLowerCase())throw new Error('Vault bytecode does not match this reviewed build.');
+ const templates=[artifact.runtimeTemplate,...(compatibility.sourceHash===artifact.sourceHash?compatibility.acceptedRuntimeTemplates:[])];
+ if(!templates.some(template=>masked===template.slice(2).toLowerCase()))throw new Error('Vault bytecode does not match this reviewed build.');
  const vault=new Contract(target,artifact.abi,provider);
  const [owner,token,savings,snapshot,lastAllocation]=await Promise.all([vault.owner({blockTag:block}),vault.musd({blockTag:block}),vault.savings({blockTag:block}),vault.snapshot({blockTag:block}),vault.lastAllocation({blockTag:block})]);
  if(getAddress(token)!==getAddress(CAPITAL.musd)||getAddress(savings)!==getAddress(CAPITAL.savings))throw new Error('This account targets different contracts.');
