@@ -9,7 +9,8 @@
     "preflight:capital": "node scripts/preflight-capital.mjs",
     "simulate:capital": "node scripts/simulate-capital.mjs",
     "keeper:capital": "node scripts/keeper-capital.mjs",
-    "prepare:deploy": "node scripts/prepare-capital-deploy.mjs"
+    "prepare:deploy": "node scripts/prepare-capital-deploy.mjs",
+    "verify:deployment": "node scripts/verify-deployment.mjs"
   },
   "devDependencies": {
     "ganache": "7.9.2",

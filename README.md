@@ -32,7 +32,7 @@ Five contract/keeper tests passed. The frontend production build and desktop/mob
 
 A separate live Mezo testnet `eth_call` successfully funded an ephemeral vault with 100 simulated MUSD, allocated 60 while preserving a 40 reserve, revoked automation, unwound savings and returned all 100. No public transaction was broadcast. See `exports/testnet-lifecycle-simulation.json`.
 
-Public deployment and a mined funded lifecycle still require the owner's wallet. The savings strategy source remains unverified; no APY or guaranteed yield is shown. Borrowing, bridging, fiat ramps and savings staking are not implemented.
+A deployed owner-controlled testnet vault is verified at [`0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae`](https://explorer.test.mezo.org/address/0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae). The captured position is empty and inactive. Its executable build, owner and integration targets match the deployment record in `exports/deployment.json`. A mined funded lifecycle still requires the owner's wallet. The savings strategy source remains unverified; no APY or guaranteed yield is shown. Borrowing, bridging, fiat ramps and savings staking are not implemented.
 
 ## Tools
 

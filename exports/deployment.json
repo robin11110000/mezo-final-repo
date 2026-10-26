@@ -1,0 +1,15 @@
+{
+  "chainId": 31611,
+  "address": "0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae",
+  "owner": "0xD16101f623B17284AfCd7F28dE6e3B29D2646be0",
+  "blockNumber": "16386227",
+  "runtimeCodeHash": "0x0527c5a35758033195bbb1a1ad434fd501230056ecc4aa3aa9f818447c0e5a1a",
+  "runtimeVerified": true,
+  "musd": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+  "savings": "0x6f461c68B2c5492C0F5CCEc5a264d692aA7A8e16",
+  "initialStrategy": "0x6abE6853f3006f304709084AC37f826Be50847E0",
+  "liquidMusd": "0",
+  "savingsPrincipal": "0",
+  "active": false,
+  "minedFundedLifecycleVerified": false
+}

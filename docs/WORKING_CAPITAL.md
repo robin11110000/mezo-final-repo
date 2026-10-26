@@ -1,6 +1,6 @@
 # Working-capital vault
 
-`src/WorkingCapitalVault.sol` is a new single-owner MUSD account integrating the actual Mezo testnet savings ABI. The constructor and wallet frontend reject every chain except 31611. No deployed application address or funded savings lifecycle is claimed.
+`src/WorkingCapitalVault.sol` is a new single-owner MUSD account integrating the actual Mezo testnet savings ABI. The constructor and wallet frontend reject every chain except 31611. The empty, inactive testnet account in exports/deployment.json has been verified against its owner, executable runtime and integration targets. No mined funded savings lifecycle is claimed.
 
 Each user deploys their own account, funds it with test MUSD, selects keepers and sets a policy. The policy specifies liquid reserve, per-allocation cap, total remaining allocation budget, cooldown and expiry. Both owner and keeper allocations obey all limits. No keeper fee is charged. Keepers cannot choose another destination or withdraw funds. Successful allocations decrement the budget, preserve the reserve and clear token allowance. Receipt and token deltas must match the observed 1:1 principal interface or the transaction reverts.
 

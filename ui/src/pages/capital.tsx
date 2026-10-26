@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import {BrowserProvider,Contract,ContractFactory,formatUnits,getAddress} from 'ethers';
 import {CAPITAL,artifact,checkedProvider,verifySavings,readCapital,musdAmount,CapitalSnapshot} from '../lib/capital';
 import lifecycle from '../lib/testnet-lifecycle.json';
+import deployment from '../lib/deployment.json';
 
 type Injected={request:(args:{method:string;params?:unknown[]})=>Promise<any>;isMetaMask?:boolean;isPhantom?:boolean;providers?:Injected[];on?:(event:string,fn:()=>void)=>void;removeListener?:(event:string,fn:()=>void)=>void};
 let discoveredMetaMask:Injected|undefined;
@@ -22,7 +23,7 @@ export default function Capital(){
  const [integration,setIntegration]=useState('Checking testnet savings configuration…');
  const owned=Boolean(account&&snapshot&&account.toLowerCase()===snapshot.owner.toLowerCase());
  useEffect(()=>{
-  setAddress(localStorage.getItem('mezo-capital-vault')||'');
+  setAddress(localStorage.getItem('mezo-capital-vault')||deployment.address);
   checkedProvider().then(verifySavings).then(()=>setIntegration('Reviewed savings configuration matches testnet.')).catch(()=>setIntegration('Savings configuration could not be verified.'));
   const changed=()=>{setAccount('');setSnapshot(null);setStatus('Wallet changed. Reconnect and reload the vault.');};
   let subscribed:Injected|undefined;
