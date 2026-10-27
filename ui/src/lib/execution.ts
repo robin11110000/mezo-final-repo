@@ -2,6 +2,7 @@ import {Contract,JsonRpcProvider,ZeroAddress,getAddress,parseEther} from 'ethers
 import {checkedProvider,CAPITAL} from './capital';
 import {config,protocolContract,verifyProtocol} from './protocol';
 import artifact from './abis/BtcRedemptionAccount.json';
+import {planRedemption} from './redemption-plan.mjs';
 export {artifact as redemptionArtifact};
 const btc='0x7b7C000000000000000000000000000000000000';
 export async function readRedemptionAccount(address:string){
@@ -16,11 +17,13 @@ export type RedemptionSnapshot=Awaited<ReturnType<typeof readRedemptionAccount>>
 export async function redemptionRequest(provider:JsonRpcProvider,amount:bigint,minBtc:bigint){
  const pf=protocolContract('PriceFeed',provider),helper=protocolContract('HintHelpers',provider),sorted=protocolContract('SortedTroves',provider);
  const price=BigInt(await pf.fetchPrice());if(price<=0n)throw Error('Protocol price unavailable.');
- const hints=await helper.getRedemptionHints(amount,price,50);
- if(hints[0]===ZeroAddress||hints[2]===0n)throw Error('No redeemable liquidity found.');
- let upper=ZeroAddress,lower=ZeroAddress;if(hints[1]>0n){const approx=await helper.getApproxHint(hints[1],64,42);const pos=await sorted.findInsertPosition(hints[1],approx[0],approx[0]);upper=pos[0];lower=pos[1];}
+ const tm=protocolContract('TroveManager',provider),bo=protocolContract('BorrowerOperations',provider);
+ const [mcr,gasCompensation,minimumDebt]=await Promise.all([tm.MCR(),tm.MUSD_GAS_COMPENSATION(),bo.minNetDebt()]);
+ const plan=await planRedemption({amount,price,mcr:BigInt(mcr),gasCompensation:BigInt(gasCompensation),minimumDebt:BigInt(minimumDebt),last:()=>sorted.getLast(),previous:address=>sorted.getPrev(address),position:async address=>{const v=await tm.getEntireDebtAndColl(address);return {collateral:BigInt(v[0]),principal:BigInt(v[1]),interest:BigInt(v[2])};}});
+ if(plan.first===ZeroAddress||plan.amount===0n)throw Error('No redeemable liquidity within the iteration and minimum-debt limits.');
+ let upper=ZeroAddress,lower=ZeroAddress;if(plan.nicr>0n){const approx=await helper.getApproxHint(plan.nicr,16,42);const pos=await sorted.findInsertPosition(plan.nicr,approx[0],approx[0]);upper=pos[0];lower=pos[1];}
  const block=await provider.getBlock('latest');if(!block)throw Error('Missing block.');
- return {amount:BigInt(hints[2]),first:hints[0],upper,lower,nicr:BigInt(hints[1]),iterations:50n,minBtc,deadline:BigInt(block.timestamp+180)};
+ return {amount:plan.amount,first:plan.first,upper,lower,nicr:plan.nicr,iterations:50n,minBtc,deadline:BigInt(block.timestamp+180)};
 }
 export async function quoteExits(owner:string,amount:bigint,minBtc:bigint,account?:string){
  if(amount<=0n||minBtc<=0n)throw Error('Enter positive MUSD and minimum BTC.');

@@ -1,0 +1,1 @@
+export function planRedemption(input:{amount:bigint;price:bigint;mcr:bigint;gasCompensation:bigint;minimumDebt:bigint;last:()=>Promise<string>;previous:(address:string)=>Promise<string>;position:(address:string)=>Promise<{collateral:bigint;principal:bigint;interest:bigint}>;maxIterations?:number}):Promise<{first:string;amount:bigint;nicr:bigint;visited:number}>;

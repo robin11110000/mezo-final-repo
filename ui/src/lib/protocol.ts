@@ -13,7 +13,7 @@ export async function verifyProtocol(provider:JsonRpcProvider,names:ContractName
  await Promise.all(names.map(async name=>{
   const c=config.contracts[name];const [code,storage]=await Promise.all([provider.getCode(c.address,block),provider.getStorage(c.address,SLOT,block)]);
   if(code==='0x'||keccak256(code)!==c.runtimeHash)throw Error(`${name} runtime changed. Integration review required.`);
-  const implementation=/^0x0+$/.test(storage)?null:getAddress('0x'+storage.slice(-40));
+  const implementation=/^0x0*$/.test(storage)?null:getAddress('0x'+storage.slice(-40));
   if(implementation!==c.implementation)throw Error(`${name} implementation changed. Integration review required.`);
   if(implementation&&keccak256(await provider.getCode(implementation,block))!==c.implementationHash)throw Error(`${name} implementation code changed.`);
  }));
@@ -38,7 +38,7 @@ export type Position=Awaited<ReturnType<typeof readPosition>>;
 export async function insertionHints(provider:JsonRpcProvider,collateral:bigint,principal:bigint){
  const hints=protocolContract('HintHelpers',provider),sorted=protocolContract('SortedTroves',provider);
  const nicr=await hints.computeNominalCR(collateral,principal);
- const approximate=await hints.getApproxHint(nicr,64,42);
+ const approximate=await hints.getApproxHint(nicr,16,42);
  const position=await sorted.findInsertPosition(nicr,approximate[0],approximate[0]);return [position[0],position[1]] as [string,string];
 }
 export async function previewBorrow(owner:string,collateral:bigint,draw:bigint,targetBps:bigint){

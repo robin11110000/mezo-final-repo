@@ -1,7 +1,7 @@
 {
   "chainId": 31611,
-  "block": "16392388",
-  "observedAt": "2026-10-27T01:41:45.198Z",
+  "block": "16392677",
+  "observedAt": "2026-10-27T02:01:49.775Z",
   "method": "eth_call with ephemeral helper code, BTC balance and MUSD storage overrides; no broadcast",
   "borrowing": {
     "status": "simulated-success",
@@ -19,6 +19,14 @@
       "409",
       "10000000000000000",
       "1793836800"
+    ]
+  },
+  "redemption": {
+    "status": "simulated-success",
+    "result": [
+      "37185226336726183",
+      "461925372354",
+      "0"
     ]
   }
 }
