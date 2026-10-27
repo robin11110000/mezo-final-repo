@@ -1,1 +1,1 @@
-export {default} from './capital';
+export {default} from './btc';

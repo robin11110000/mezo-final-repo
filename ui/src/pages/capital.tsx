@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {BrowserProvider,Contract,ContractFactory,formatUnits,getAddress} from 'ethers';
 import {CAPITAL,artifact,checkedProvider,verifySavings,readCapital,musdAmount,CapitalSnapshot} from '../lib/capital';
@@ -65,6 +66,7 @@ export default function Capital(){
  return <><Head><title>MUSD / Working capital</title><meta name="description" content="Owner-controlled MUSD reserves on Mezo testnet"/></Head><main className="capital">
   <div className="ripple" aria-hidden="true"/><div className="shell">
   <nav><strong>MUSD / CAPITAL_</strong><span className="tag">MEZO TESTNET · 31611</span></nav>
+  <div className="btc-tabs"><Link href="/btc">01 / BTC & LOANS</Link><Link href="/capital" aria-current="page">02 / MUSD RESERVES</Link><Link href="/earn">03 / BTC EARN</Link><Link href="/execution">04 / KEEPER & EXITS</Link></div>
   <header><p className="eyebrow">01 / YOUR CAPITAL, YOUR LIMITS</p><h1>PUT SURPLUS<br/><em>TO WORK.</em></h1><p>Keep a liquid reserve. Set the limits. Stay in control.</p></header>
   <section className="panel"><div className="section-title"><h2>Connect your account</h2><span>01</span></div><div className="row">{action(account?`${account.slice(0,6)}…${account.slice(-4)}`:'Connect MetaMask',connect)}{action('Deploy empty vault',deploy,!account)}</div><label>Vault address<input value={address} onChange={e=>{setAddress(e.target.value);setSnapshot(null);}} placeholder="0x…" spellCheck={false}/></label>{action('Load vault',()=>refresh(),!address)}<p className="hint">Deployment creates an empty account. Your wallet confirms each transaction. <a href="https://faucet.test.mezo.org/" target="_blank" rel="noreferrer">Get test BTC ↗</a></p></section>
   <section className="metrics"><article><span>LIQUID MUSD</span><strong>{snapshot?display(snapshot.liquid):'—'}</strong></article><article><span>SAVINGS PRINCIPAL</span><strong>{snapshot?display(snapshot.principal):'—'}</strong></article><article><span>REMAINING BUDGET</span><strong>{snapshot?display(snapshot.policy.remainingBudget):'—'}</strong></article></section>
