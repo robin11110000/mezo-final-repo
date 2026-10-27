@@ -1,6 +1,6 @@
-# BTC Capital Engine
+# Surplus
 
-A Mezo testnet application for BTC-backed MUSD borrowing, independent veBTC earning positions, owner-controlled MUSD reserves and bounded keeper redemptions.
+Put BTC to work on Mezo testnet. Surplus brings together BTC-backed MUSD borrowing, independent veBTC earning positions, owner-controlled MUSD reserves and bounded keeper redemptions.
 
 Live prototype: https://ui-silk.vercel.app/btc
 
