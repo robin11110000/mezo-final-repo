@@ -1,5 +1,11 @@
 # Working-capital keeper and deployment
 
+## Independent BTC redemption keeper
+
+Deploy and fund `BtcRedemptionAccount` in `/execution`, then authorize a keeper and activate its on-chain policy. Configure `REDEMPTION_ACCOUNT` and public `KEEPER_ADDRESS`, and run `npm run keeper:redemption`. Default mode reads and simulates only. It prints actual simulated MUSD spent, BTC received and keeper fee. It checks account/protocol runtime identities, targets, authorization and policy, and uses at most 50 redemption iterations with a three-minute deadline.
+
+Explicit sending requires `npm run keeper:redemption -- --send`, a locally managed `KEEPER_PRIVATE_KEY`, and gas funding. Never paste keys into chat. `MAX_REDEEM_WEI` can further restrict spend; `MAX_GAS_PRICE_WEI` bounds gas price. BTC stays in the account until the owner withdraws. Keeper fees are MUSD. This keeper cannot repay a loan, operate savings, bridge assets or guarantee profit. A new account needs independent deployment review before unattended operation.
+
 ## Verified lifecycle
 
 `npm run simulate:capital` compiles an ephemeral helper and executes a single `eth_call` against live Mezo testnet savings and its configured strategy. It injects 100 MUSD into the helper's temporary balance, creates a real WorkingCapitalVault inside the simulation, funds it, allocates 60 MUSD with a 40 MUSD reserve, revokes automation, unwinds all savings and returns the 100 MUSD. The captured successful result is in `exports/testnet-lifecycle-simulation.json`. No transaction or application deployment persists. This does not establish future liquidity, yield, or strategy source verification.
