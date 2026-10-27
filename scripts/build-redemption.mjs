@@ -1,0 +1,15 @@
+import {readFileSync} from 'node:fs';
+import {writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import solc from 'solc';
+import {keccak256} from 'viem';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const source='src/BtcRedemptionAccount.sol',content=readFileSync(resolve(root,source),'utf8');
+const settings={optimizer:{enabled:true,runs:1000},evmVersion:'london',outputSelection:{'*':{'*':['abi','evm.bytecode.object','evm.deployedBytecode.object','evm.deployedBytecode.immutableReferences']}}};
+const output=JSON.parse(solc.compile(JSON.stringify({language:'Solidity',sources:{[source]:{content}},settings}),{import:path=>{try{return {contents:readFileSync(resolve(root,path.replace('@openzeppelin/contracts/','lib/openzeppelin-contracts/contracts/')),'utf8')};}catch{return {error:'Missing '+path};}}}));
+const errors=(output.errors||[]).filter(x=>x.severity==='error');if(errors.length)throw Error(errors.map(x=>x.formattedMessage).join('\n'));
+const c=output.contracts[source].BtcRedemptionAccount;
+const artifact={contractName:'BtcRedemptionAccount',chainId:31611,compiler:solc.version(),sourceHash:keccak256('0x'+Buffer.from(content).toString('hex')),abi:c.abi,bytecode:'0x'+c.evm.bytecode.object,runtimeTemplate:'0x'+c.evm.deployedBytecode.object,immutableReferences:c.evm.deployedBytecode.immutableReferences};
+for(const path of ['exports/BtcRedemptionAccount.json','ui/src/lib/abis/BtcRedemptionAccount.json'])await writeFile(resolve(root,path),JSON.stringify(artifact,null,2)+'\n');
+console.log('Built testnet-only bounded redemption account.');

@@ -20,8 +20,9 @@ jobs:
             ui/package-lock.json
       - run: npm ci --ignore-scripts
       - run: npm run build:capital
+      - run: npm run build:redemption
       - name: Verify committed artifacts match compiler inputs
-        run: git diff --exit-code -- exports/WorkingCapitalVault.json ui/src/lib/abis/WorkingCapitalVault.json
+        run: git diff --exit-code -- exports/WorkingCapitalVault.json ui/src/lib/abis/WorkingCapitalVault.json exports/BtcRedemptionAccount.json ui/src/lib/abis/BtcRedemptionAccount.json
       - run: npm run test:security
       - run: npm ci --ignore-scripts
         working-directory: ui

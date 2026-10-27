@@ -5,6 +5,10 @@
   "scripts": {
     "test:security": "node --test test-node/*.test.mjs",
     "build:capital": "node scripts/build-capital.mjs",
+    "build:redemption": "node scripts/build-redemption.mjs",
+    "snapshot:protocol": "node scripts/snapshot-protocol.mjs",
+    "simulate:btc": "node scripts/simulate-btc.mjs",
+    "keeper:redemption": "node scripts/keeper-redemption.mjs",
     "verify:testnet": "node integrations/testnet/verify.mjs",
     "preflight:capital": "node scripts/preflight-capital.mjs",
     "simulate:capital": "node scripts/simulate-capital.mjs",
