@@ -1,96 +1,112 @@
 # Surplus
 
-**Put Bitcoin to work on Mezo.**
+**Borrow against BTC. Keep a reserve. Put only the surplus to work.**
 
-Surplus is a Mezo testnet application for BTC-backed borrowing, MUSD reserve management, BTC Earn positions and bounded keeper execution. It gives users a path from idle BTC to usable capital, with explicit spending limits and wallet-controlled exits.
+[Open the testnet app](https://ui-silk.vercel.app/btc) · [Tests and builds](https://github.com/robin11110000/mezo-final-repo/actions/workflows/checks.yml) · [Detailed implementation status](docs/IMPLEMENTATION_STATUS.md)
 
-[Try Surplus](https://ui-silk.vercel.app/btc) · [Build and security checks](https://github.com/robin11110000/mezo-final-repo/actions/workflows/checks.yml) · [Implementation status](docs/IMPLEMENTATION_STATUS.md)
+## What is this?
 
-> Testnet only: Mezo chain **31611**. Borrowing creates debt and liquidation risk; Earn positions lock BTC. This is an experimental prototype, not an audited production application.
+Mezo already lets you borrow MUSD against your BTC without selling it. Surplus starts with the next question: **what do you do with that MUSD, and how much should stay available?**
 
-## Why Surplus?
+You might want some for repayments or other uses, while putting the rest into savings. You might also want a bot to handle routine transactions without giving it unrestricted access to your money.
 
-BTC held in a wallet provides no application-level utility on its own. Mezo lets a holder use BTC as collateral to access MUSD, or commit a separate BTC balance to an earning position. Managing those choices also requires understanding debt, liquidity, fees and exit conditions.
+Surplus gives you a personal MUSD account with rules you choose. You decide how much stays liquid, how much can go into savings, who can execute those transactions and when that permission ends. The account contract checks those rules on every allocation.
 
-Surplus connects those decisions in one interface:
+The app also brings together Mezo borrowing, BTC Earn positions and MUSD-to-BTC exits. Those integrations help you use existing Mezo products; the account contracts and bounded keeper execution are the main work added here.
 
-1. **Activate BTC:** deposit collateral and borrow MUSD after reviewing fees, debt and the collateral ratio.
-2. **Manage capital:** keep a liquid MUSD reserve and allocate permitted surplus to savings.
-3. **Manage debt:** add collateral, repay, refinance or close the loan with wallet approval.
-4. **Explore another BTC path:** create and manage an independent veBTC lock.
-5. **Control execution:** compare MUSD-to-BTC routes and authorize a keeper within an on-chain budget.
+**This is a testnet prototype on Mezo, chain 31611.** Borrowing creates debt and liquidation risk. Savings returns are variable, and BTC Earn locks have withdrawal conditions.
 
-These are separate positions and transactions. BTC locked in Earn is separate from loan collateral. Redeeming MUSD for BTC does not repay the user's loan, and savings income is not guaranteed to exceed borrowing costs.
+## A simple example
 
-## Explore the application
+Suppose you already have **1,000 test MUSD** and want to keep 400 available.
 
-| Screen | What you can do |
+You fund your Surplus reserve account and set:
+
+| Rule | Your choice |
 | --- | --- |
-| [BTC & loans](https://ui-silk.vercel.app/btc) | Inspect BTC collateral, debt and interest; simulate borrowing; add collateral; borrow more; repay; refinance; close; compare estimated income with borrowing costs |
-| [MUSD reserves](https://ui-silk.vercel.app/capital) | Deploy a personal reserve account, fund it, configure spending limits, allocate to savings, return savings, claim yield and withdraw |
-| [BTC Earn](https://ui-silk.vercel.app/earn) | Inspect locks, create a BTC lock, extend it, vote on a registered active pool, claim rewards and withdraw when permitted |
-| [Keeper & exits](https://ui-silk.vercel.app/execution) | Deploy a redemption account, configure keeper permissions, compare redemption and DEX routes, redeem or swap MUSD for BTC, and inspect liquidation candidates |
+| Keep available | 400 MUSD |
+| Maximum savings allocation per transaction | 200 MUSD |
+| Total allocation budget | 600 MUSD |
+| Time between allocations | Your chosen cooldown |
+| Permission expires | Your chosen date |
 
-Actions depend on wallet balances, approvals, protocol state and available liquidity. A visible action is not a promise of rewards, a successful trade or a profitable keeper job.
+An authorized bot, called a **keeper**, can then allocate up to 200 MUSD at a time. It cannot allocate below the 400 MUSD reserve, exceed the remaining budget or withdraw your funds. Each successful allocation reduces the budget.
 
-## Try it on testnet
+You can revoke the policy. You can also return savings to the account and withdraw to your wallet, subject to the underlying savings contract's conditions.
 
-1. Open [Surplus](https://ui-silk.vercel.app/btc) in a browser with MetaMask.
-2. Select **Connect MetaMask** and approve the Mezo testnet network request. The app selects MetaMask explicitly when another wallet is also installed.
-3. Claim test BTC from the [Mezo faucet](https://faucet.test.mezo.org/). Keep some BTC in your wallet for gas.
-4. Enter a BTC collateral amount, MUSD draw and minimum collateral target, then choose **Calculate & simulate borrowing**.
-5. Review the preview, acknowledge the risk and confirm the transaction in your wallet. The live protocol determines minimum debt and fees.
-6. After confirmation, inspect the position and try adding collateral or repaying MUSD. Full closure requires enough MUSD for the repayment amount, including applicable fees and accrued interest.
+The 400 MUSD stays in the account, not your wallet. Moving it to your wallet takes a withdrawal transaction. Repaying your loan is another transaction.
 
-Wallet-confirmed transactions persist on public testnet. Preview simulations do not. The app never asks for a seed phrase or private key.
+## What can I do in the app?
 
-## Architecture
-
-Surplus uses a Next.js frontend, two original Solidity account contracts, protocol adapters and one-shot keeper scripts. There is no hosted application API, database or continuously running keeper service. Transaction history is stored locally in the browser.
-
-| Component | Responsibility | Source |
-| --- | --- | --- |
-| Borrowing adapter | Mezo loan reads, fee-aware previews, insertion hints and borrower transactions | [protocol.ts](ui/src/lib/protocol.ts) |
-| Reserve account | Owner-controlled MUSD reserves, savings allocations, withdrawal and yield claims | [WorkingCapitalVault.sol](src/WorkingCapitalVault.sol) |
-| Redemption account | Permissioned MUSD-to-BTC execution with actual-spend accounting and minimum-output checks | [BtcRedemptionAccount.sol](src/BtcRedemptionAccount.sol) |
-| Savings keeper | Checks policy and simulates or submits one permitted allocation | [keeper-capital.mjs](scripts/keeper-capital.mjs) |
-| Redemption keeper | Verifies account identity, plans a bounded redemption and simulates or submits it | [keeper-redemption.mjs](scripts/keeper-redemption.mjs) |
-| Earn adapter | veBTC locks, voting and distributor reward claims | [earn.ts](ui/src/lib/earn.ts) |
-| Exit and liquidation adapter | DEX quotes/swaps, account redemptions and liquidation simulation | [execution.ts](ui/src/lib/execution.ts) |
-| Redemption planner | Stops at the first partial trove and respects minimum remaining debt | [redemption-plan.mjs](ui/src/lib/redemption-plan.mjs) |
-| Market checks | Skip BTC/USD and Pyth MUSD freshness, confidence and value checks | [markets.ts](ui/src/lib/markets.ts) |
-| Risk calculations | Debt, collateral targets, repayment constraints and estimated net carry | [btc-math.mjs](ui/src/lib/btc-math.mjs) |
-
-### Owner and keeper permissions
-
-Each account has an immutable owner. Owners fund accounts, choose keepers, configure policies and withdraw proceeds. Keepers receive bounded execution permission; they cannot withdraw owner funds or change policy.
-
-- **Savings policy:** liquid reserve, per-allocation cap, remaining budget, cooldown, expiry and activation state.
-- **Redemption policy:** reserve, per-execution cap, remaining budget, minimum BTC per MUSD, cooldown, expiry and a keeper fee capped at 1%.
-- **Execution checks:** authorization, reentrancy protection, measured token/native balance changes and minimum proceeds. Partial redemptions consume budget and fees based on actual MUSD spent.
-- **Owner exits:** revoking or expiring a policy stops keeper execution while preserving owner exit functions, subject to underlying protocol conditions.
-
-The accounts do not provide automatic loan protection. Returning savings, withdrawing MUSD to the owner and repaying a loan require separate transactions in this build. A collateral target guards new borrowing; it does not continuously maintain the position.
-
-## Mezo integrations
-
-| Integration | Current use |
+| Screen | What it does |
 | --- | --- |
-| Mezo EVM and RPC | Solidity execution, public reads, wallet transactions and chain checks |
-| MUSD borrowing contracts | BTC collateral, MUSD issuance, loan management and liquidation calls |
-| HintHelpers and SortedTroves | Insertion hints and bounded redemption planning |
-| MUSD Savings | Reserve-account allocations, withdrawals and yield claims |
-| Mezo Earn / veBTC | BTC locking, position reads, pool voting and reward claims |
-| DEX router and pool factory | MUSD-to-native-BTC quotes and minimum-output swaps |
-| Skip and Pyth | Market cross-checks; borrower eligibility uses the protocol's official price feed |
+| [BTC & loans](https://ui-silk.vercel.app/btc) | Deposit BTC collateral and borrow MUSD through Mezo. Inspect debt, add collateral, repay, refinance or close. Review fees and estimated borrowing costs. |
+| [MUSD reserves](https://ui-silk.vercel.app/capital) | Deploy and fund your account. Set a reserve and allocation limits. Allocate to savings, return savings, claim available yield and withdraw. |
+| [BTC Earn](https://ui-silk.vercel.app/earn) | Manage a separate BTC lock: inspect positions, create or extend a lock, vote, claim available rewards and withdraw when eligible. |
+| [Keeper & exits](https://ui-silk.vercel.app/execution) | Compare a DEX swap with protocol redemption. Deploy a separate redemption account and set limits on its MUSD-to-BTC execution. There is also a liquidation inspection tool. |
 
-ABIs and runtime identities are recorded in [exports/protocol-testnet.json](exports/protocol-testnet.json), with pinned official repository revisions. Adapters check reviewed runtime hashes, proxy implementation identities and protocol linkages before writes. A mismatch blocks the operation until reviewed.
+BTC in an Earn lock is separate from BTC loan collateral. A protocol redemption exchanges MUSD for BTC collateral; **it does not repay your own loan**.
 
-This is a configuration safeguard, not a formal proof of source equivalence. Protocol proxies can change after an off-chain check and before execution.
+## What Surplus adds
 
-## Run locally
+Surplus does not introduce a new lending protocol or a new source of yield. It uses Mezo's existing contracts.
 
-Use **Node.js 22** and npm, matching CI.
+The added functionality is in two owner-controlled accounts:
+
+- **Reserve account:** keeps MUSD liquid according to a minimum reserve and permits savings allocations within a cap, total budget, cooldown and expiry.
+- **Redemption account:** lets an authorized keeper exchange account MUSD for BTC within spending and minimum-output limits. It measures the MUSD actually spent and BTC actually received, including partial fills. Any keeper fee is capped at 1% and calculated on actual spend.
+
+Keepers cannot change the policy or withdraw owner funds. Revocation and expiry stop keeper execution while preserving owner exit functions.
+
+The redemption planner also stops at the first partially redeemed borrowing position, matching the execution behavior we inspected. A regression test covers the case where continuing traversal would produce the wrong partial-redemption hint.
+
+## Try it
+
+1. Open the [BTC page](https://ui-silk.vercel.app/btc) with MetaMask installed.
+2. Connect and approve switching to **Mezo testnet, chain 31611**.
+3. Get test BTC from the [faucet](https://faucet.test.mezo.org/). Leave some in your wallet for gas.
+4. Enter collateral, the MUSD you want to receive and a minimum collateral target. Select **Calculate & simulate borrowing**.
+5. Review the debt and fees, acknowledge the risk and confirm in MetaMask.
+6. Use the reserve screen to deploy your own account, approve and fund it with test MUSD, then configure its policy. These are separate wallet transactions.
+
+The preview enforces the live protocol's minimum debt and checks your collateral target. Closing a loan requires sufficient MUSD for the repayment amount, including applicable fees and interest.
+
+Wallet-confirmed transactions persist on testnet. Simulations do not. Surplus never asks for your seed phrase or private key.
+
+## What has actually been verified?
+
+| Area | Evidence and limits |
+| --- | --- |
+| Borrowing | Borrow, collateral top-up, partial repayment and closure passed a local-fork browser test and a public testnet simulation. Additional borrowing and refinancing have less end-to-end verification. No publicly mined borrower lifecycle is recorded in the committed evidence. |
+| Reserves and savings | Contract tests and a public testnet simulation cover funding, allocation, revocation, savings withdrawal and owner withdrawal. An empty reserve account is deployed; a publicly mined funded savings lifecycle is not recorded. |
+| BTC Earn | BTC lock creation passed a public testnet simulation. Extension, voting, claims and withdrawal controls are implemented but have not all been verified end to end. |
+| Redemptions and swaps | Redemption-account tests and a public testnet redemption/withdrawal simulation passed. DEX execution depends on approval and liquidity; no public trade is claimed. A new redemption account still needs wallet deployment. |
+
+The public simulations use `eth_call` with temporary code and balance/storage overrides. They exercise real testnet contracts but create no persistent positions. Temporary funding is a test fixture, not earned income.
+
+The BTC browser test uses a local Mezo fork with seeded balances and an explicit oracle substitute because Ganache cannot execute Mezo's native Skip precompile.
+
+## Technical overview
+
+The frontend is Next.js/React with ethers and viem. The two account contracts use Solidity 0.8.30 and OpenZeppelin utilities. There is no hosted API, database or continuously running keeper. Browser transaction history is local.
+
+| Part | Code |
+| --- | --- |
+| Reserve account and savings integration | [WorkingCapitalVault.sol](src/WorkingCapitalVault.sol) |
+| Bounded redemption account | [BtcRedemptionAccount.sol](src/BtcRedemptionAccount.sol) |
+| Borrowing reads, previews and transactions | [protocol.ts](ui/src/lib/protocol.ts) |
+| Savings and redemption keepers | [keeper-capital.mjs](scripts/keeper-capital.mjs), [keeper-redemption.mjs](scripts/keeper-redemption.mjs) |
+| Partial-redemption planning | [redemption-plan.mjs](ui/src/lib/redemption-plan.mjs) |
+| Earn, DEX and liquidation adapters | [earn.ts](ui/src/lib/earn.ts), [execution.ts](ui/src/lib/execution.ts) |
+| Oracle checks and borrowing calculations | [markets.ts](ui/src/lib/markets.ts), [btc-math.mjs](ui/src/lib/btc-math.mjs) |
+
+MUSD is used directly for borrowing, reserve funding, savings and redemption. Earn uses separate veBTC positions. Skip and Pyth provide market cross-checks; borrower operations use Mezo's official protocol price feed. MEZO emissions automation is not implemented.
+
+Protocol ABIs, upstream revisions and reviewed runtime identities are recorded in [protocol-testnet.json](exports/protocol-testnet.json). Adapters check contract identities and linkages before writes. Those off-chain checks cannot prevent a protocol upgrade between a check and transaction execution.
+
+### Run locally
+
+Use **Node.js 22** and npm.
 
 ```sh
 git clone https://github.com/robin11110000/mezo-final-repo.git
@@ -103,90 +119,47 @@ npm ci
 npm run dev
 ```
 
-Open [http://127.0.0.1:3002/btc](http://127.0.0.1:3002/btc). Public protocol addresses are included in the repository; normal browser use requires no server secret.
+Open [localhost:3002/btc](http://127.0.0.1:3002/btc). Public protocol configuration is included; normal browser use needs no server secret.
 
-Build the frontend from `ui/` with:
+### Check the implementation
 
-```sh
-npm run build
-```
-
-## Tests and verification
-
-Run from the repository root:
+From the repository root:
 
 ```sh
 npm run test:security
-```
-
-The current suite contains **14 tests**:
-
-| Coverage | Tests |
-| --- | --- |
-| Borrowing fees, collateral targets, minimum debt, route ranking and estimated carry | 4 |
-| Keeper budget, reserve, cooldown, expiry and revocation boundaries | 2 |
-| Redemption permissions, partial fills, bounded fees, minimum proceeds and owner exits | 3 |
-| First-partial redemption hints and full-to-partial traversal | 2 |
-| Reserve-vault policy, withdrawals, dishonest savings responses and reentrancy | 3 |
-
-CI also rebuilds both account artifacts, checks that committed artifacts match compiler output and builds the frontend.
-
-### Browser checks
-
-[test-browser/btc-flow.cjs](test-browser/btc-flow.cjs) covers wallet selection, borrowing, collateral top-up, partial repayment, full closure, Earn reads, redemption-account deployment/funding and mobile overflow. It runs against a local Mezo fork. Ganache cannot execute Mezo's Skip precompile, so this test explicitly substitutes a local BTC oracle. It also seeds local balances; no public transaction is sent.
-
-Browser tests require a running frontend, Playwright (or a `PLAYWRIGHT_MODULE` path), and Microsoft Edge, which the current scripts select. Set `CAPITAL_URL` to your frontend origin: the BTC test otherwise defaults to port 3004, while `npm run dev` serves port 3002. Existing reserve-vault browser tests use local protocol mocks. These scripts are separate from the CI test suite.
-
-### Public testnet simulations
-
-```sh
 npm run simulate:btc
 npm run simulate:capital
 ```
 
-These scripts use `eth_call` with temporary helper code and balance/storage overrides against public testnet contracts. They require no wallet signatures and leave no persistent positions or transactions.
+The **14 automated tests** cover borrowing calculations, keeper policy boundaries, reserve accounting, reentrancy, dishonest savings responses, partial redemption fills, actual-spend fees and minimum BTC proceeds. See [test-node/](test-node/). CI rebuilds account artifacts, checks they match committed compiler output, runs those tests and builds the frontend.
 
-Recorded evidence includes:
+From `ui/`, run `npm run build` to build the app. Browser tests in [test-browser/](test-browser/) require Playwright, Microsoft Edge and a running frontend. Set `CAPITAL_URL` to the frontend origin; the BTC browser test otherwise defaults to port 3004.
 
-- **BTC lifecycle, block 16392677:** borrow 2,000 MUSD against 0.1 BTC, add 0.01 BTC, repay 100 MUSD and close; a separate 0.01 BTC lock; bounded redemption and owner withdrawal. The redemption filled approximately 0.0372 MUSD before the first partial trove reached its debt floor. See [btc-lifecycle-simulation.json](exports/btc-lifecycle-simulation.json).
-- **Savings lifecycle:** fund with 100 temporary MUSD, allocate 60 with a 40 reserve, revoke automation, unwind and return all 100. See [testnet-lifecycle-simulation.json](exports/testnet-lifecycle-simulation.json).
-- **Deployed reserve account:** [0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae](https://explorer.test.mezo.org/address/0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae). The captured account was empty and inactive; its owner, runtime and integration targets were checked. See [deployment.json](exports/deployment.json).
+Recorded evidence:
 
-Temporary simulation funding is a test fixture, not earned income. These results do not establish a publicly mined borrower or funded savings lifecycle. Deployment and funding of a new redemption account require the owner's wallet.
+- [BTC borrowing, lock and redemption simulations](exports/btc-lifecycle-simulation.json) at testnet block **16392677**.
+- [Savings lifecycle simulation](exports/testnet-lifecycle-simulation.json).
+- [Deployment evidence](exports/deployment.json) for the reserve account at [0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae](https://explorer.test.mezo.org/address/0x79169e9A85E46a9f85600E8BE164f767cb88A8Ae). The captured account was empty and inactive.
 
-## Keeper and developer tools
+Keepers simulate by default. Sending requires explicit `--send`, an authorized signer and gas. Setup and signing-key handling are described in the [keeper runbook](docs/KEEPER_RUNBOOK.md).
 
-| Command | Purpose |
-| --- | --- |
-| `npm run verify:testnet` | Check reviewed testnet integration evidence |
-| `npm run preflight:capital` | Compare live savings configuration with reviewed targets |
-| `npm run prepare:deploy -- <public-owner-address>` | Prepare an unsigned reserve-account deployment request |
-| `npm run keeper:capital` | Check and simulate one permitted savings allocation |
-| `npm run keeper:redemption` | Check and simulate one permitted redemption |
-| `npm run snapshot:protocol` | Refresh ABI and identity evidence for explicit integration review |
+## What is still missing?
 
-Keepers simulate by default. Sending requires `--send`, an authorized keeper, gas funding and a securely configured local signing key. No hosted scheduler is included. Follow the [keeper runbook](docs/KEEPER_RUNBOOK.md); never commit keys or paste them into chat. Review snapshot changes before committing instead of refreshing them to bypass an upgrade alert.
+Automatic loan protection is unfinished: the keeper cannot recall savings and repay your loan for you. The borrowing target is a check at entry, not continuous protection.
 
-## Limits and unfinished work
+Native BTC bridging, Wormhole, Banxa, Boar, Matchbox, Passport, savings-gauge staking and MEZO emissions automation are not connected. They are not part of the working demo.
 
-- **No automatic loan defense:** savings recalls and borrower repayment are owner-driven.
-- **No bridge or fiat checkout:** native BTC bridging, Wormhole NTT and Banxa remain integration work.
-- **No Boar or Matchbox adapter:** reviewed testnet deployments and integration rules are still needed.
-- **No savings-gauge staking or emissions automation:** the reviewed savings vault has no configured gauge.
-- **No Passport onboarding, concentrated-liquidity management or indexed transaction history.**
-- **No independent security audit:** tests and simulation do not replace one. Slither/Echidna runs are also outstanding.
-- **Savings trust boundary:** the configured strategy source remains unverified. No APY, future liquidity or guaranteed return is claimed.
-- **Transaction limits:** quotes expire, approvals can remain after a later transaction fails, and available liquidity or protocol conditions can change before mining.
+The contracts have not had an independent security audit. The configured savings strategy source remains unverified. Tests do not establish future liquidity, returns or production safety. Quotes can change, and a failed second transaction can leave a token approval active.
 
-See [implementation coverage and security boundaries](docs/IMPLEMENTATION_STATUS.md) for the detailed status.
+The next milestone is a recorded, wallet-signed public testnet journey from BTC borrowing through savings allocation, withdrawal and repayment. See [implementation status](docs/IMPLEMENTATION_STATUS.md) for the full boundary.
 
-## Design and documentation
+## More information
 
-- [Editable Figma file](https://www.figma.com/design/S7zbGVmer45Ih6fUI7emuC): desktop/mobile reserve dashboards and reusable primary button, secondary button, input and metric-card components. This is the earlier reserve design; the Surplus branding and newer BTC, Earn and execution screens have not yet been synced into Figma.
-- [Reserve-account behavior](docs/WORKING_CAPITAL.md)
-- [Keeper and deployment runbook](docs/KEEPER_RUNBOOK.md)
-- [Implementation status](docs/IMPLEMENTATION_STATUS.md)
+- [Account behavior](docs/WORKING_CAPITAL.md)
+- [Keeper runbook](docs/KEEPER_RUNBOOK.md)
+- [Buildathon brief and submission focus](docs/BUILDATHON_CONTEXT.md)
+- [Editable Figma file](https://www.figma.com/design/S7zbGVmer45Ih6fUI7emuC). It contains the earlier reserve dashboard and reusable components; the newer Surplus screens have not yet been synced.
 
-## License and dependencies
+## License
 
-Project code is provided under the [MIT license](LICENSE). The vendored OpenZeppelin dependency subset retains its original license and source notices. Public Mezo ABIs and deployment metadata retain their recorded upstream references; protocol Solidity implementations are not vendored by the new account contracts. See [third-party notices](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE). Dependency licenses and source notices are retained; see [third-party notices](THIRD_PARTY_NOTICES.md).
